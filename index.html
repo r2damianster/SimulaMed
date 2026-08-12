@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>SimulaMed · Prototipo Groq (0-cost)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SimulaMed · Simulación de Anamnesis Clínica</title>
 <style>
   :root{
     --paper:#FAF9F5;
@@ -23,33 +24,24 @@
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--page);color:var(--ink);font-family:var(--sans);}
-  .wrap{max-width:920px;margin:0 auto;padding:28px 20px 60px;}
-  .letterhead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:18px;}
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 20px 60px;}
+
+  .letterhead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:22px;gap:16px;flex-wrap:wrap;}
   .letterhead h1{font-size:19px;font-weight:700;letter-spacing:0.02em;margin:0;}
   .letterhead .sub{font-family:var(--mono);font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.08em;margin-top:4px;}
-  .letterhead .badge{font-family:var(--mono);font-size:11px;color:var(--teal-dark);background:var(--teal-fill);border:1px solid var(--teal);padding:4px 10px;white-space:nowrap;}
+  .letterhead .who-tag{font-family:var(--mono);font-size:11px;color:var(--teal-dark);background:var(--teal-fill);border:1px solid var(--teal);padding:4px 10px;white-space:nowrap;}
 
-  .keybar{background:var(--paper);border:1px solid var(--line-strong);padding:12px 14px;margin-bottom:18px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-  .keybar.ok{border-color:var(--teal);}
-  .keybar input[type=password], .keybar input[type=text]{flex:1;min-width:220px;border:1px solid var(--line-strong);padding:8px 10px;font-family:var(--mono);font-size:13px;background:var(--page);color:var(--ink);}
-  .keybar label{font-family:var(--mono);font-size:11px;text-transform:uppercase;color:var(--ink-soft);}
-  .keybar .hint{width:100%;font-size:12px;color:var(--ink-soft);margin-top:2px;}
-  select{font-family:var(--sans);font-size:13px;border:1px solid var(--line-strong);padding:8px;background:var(--paper);color:var(--ink);}
+  .screen{display:none;}
+  .screen.active{display:block;}
 
-  .tabs{display:flex;gap:0;margin-bottom:18px;border-bottom:1px solid var(--line-strong);}
-  .tab{font-family:var(--mono);font-size:12px;letter-spacing:0.06em;text-transform:uppercase;padding:10px 16px;cursor:pointer;color:var(--ink-soft);border-bottom:2px solid transparent;user-select:none;}
-  .tab.active{color:var(--ink);border-bottom-color:var(--teal);}
-
-  .panel{display:none;}
-  .panel.active{display:block;}
-
-  .grid{display:grid;grid-template-columns:230px 1fr;gap:18px;align-items:start;}
-  @media (max-width:640px){.grid{grid-template-columns:1fr;}}
-
-  .card{background:var(--paper);border:1px solid var(--line-strong);padding:16px;}
+  .card{background:var(--paper);border:1px solid var(--line-strong);padding:18px;}
+  .card + .card{margin-top:14px;}
   .field-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);margin:0 0 3px;}
-  .field-value{font-size:14px;margin:0 0 12px;line-height:1.4;}
+  .field-value{font-size:14px;margin:0 0 12px;line-height:1.45;}
   .field-value:last-child{margin-bottom:0;}
+
+  h2.section-title{font-size:15px;margin:0 0 4px;}
+  p.section-note{font-size:13px;color:var(--ink-soft);line-height:1.5;margin:0 0 18px;}
 
   button{font-family:var(--sans);font-size:13px;cursor:pointer;border:1px solid var(--ink);background:var(--paper);color:var(--ink);padding:9px 14px;}
   button:hover{background:var(--ink);color:var(--paper);}
@@ -57,43 +49,109 @@
   button:disabled:hover{background:var(--paper);color:var(--ink);}
   .btn-teal{border-color:var(--teal);color:var(--teal-dark);}
   .btn-teal:hover{background:var(--teal);color:#fff;}
-  .btn-block{width:100%;margin-top:10px;}
+  .btn-block{width:100%;margin-top:14px;padding:12px;}
+  .btn-small{font-size:11px;padding:5px 9px;}
 
-  .chat-box{background:var(--paper);border:1px solid var(--line-strong);min-height:340px;max-height:440px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
-  .msg{max-width:80%;padding:9px 12px;font-size:14px;line-height:1.5;}
-  .msg.paciente{background:var(--page);border:1px solid var(--line);align-self:flex-start;border-radius:2px 10px 10px 10px;}
+  input[type=text], textarea, select{
+    width:100%;border:1px solid var(--line-strong);background:var(--paper);
+    padding:9px 11px;font-size:14px;font-family:var(--sans);color:var(--ink);
+  }
+  textarea{resize:vertical;line-height:1.45;}
+  input[type=text]:focus, textarea:focus{outline:2px solid var(--teal);outline-offset:-1px;}
+  .form-row{margin-bottom:14px;}
+  .form-row:last-child{margin-bottom:0;}
+  .form-row label{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);margin-bottom:4px;}
+
+  .radio-set{display:flex;gap:10px;flex-wrap:wrap;}
+  .radio-opt{flex:1;min-width:180px;border:1px solid var(--line-strong);background:var(--paper);padding:12px;cursor:pointer;}
+  .radio-opt.selected{border-color:var(--teal);background:var(--teal-fill);}
+  .radio-opt .opt-name{font-weight:600;font-size:13px;display:block;margin-bottom:3px;}
+  .radio-opt .opt-desc{font-size:12px;color:var(--ink-soft);line-height:1.4;}
+
+  .consulta-grid{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start;}
+  @media (max-width:860px){.consulta-grid{grid-template-columns:1fr;}}
+
+  .consulta-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;
+    background:var(--paper);border:1px solid var(--line-strong);padding:10px 14px;margin-bottom:14px;flex-wrap:wrap;}
+  .consulta-bar .patient-id{font-size:13px;}
+  .consulta-bar .patient-id strong{font-weight:600;}
+  .timer{font-family:var(--mono);font-size:15px;letter-spacing:0.05em;}
+
+  .speaking-banner{display:none;align-items:center;gap:10px;background:var(--teal-fill);
+    border:1px solid var(--teal);color:var(--teal-dark);padding:9px 13px;margin-bottom:12px;font-size:13px;}
+  .speaking-banner.on{display:flex;}
+  .sound-wave{display:inline-flex;gap:2px;align-items:flex-end;height:14px;}
+  .sound-wave span{width:3px;background:var(--teal);animation:wave 0.9s ease-in-out infinite;}
+  .sound-wave span:nth-child(1){height:6px;animation-delay:0s;}
+  .sound-wave span:nth-child(2){height:13px;animation-delay:0.15s;}
+  .sound-wave span:nth-child(3){height:9px;animation-delay:0.3s;}
+  .sound-wave span:nth-child(4){height:14px;animation-delay:0.45s;}
+  @keyframes wave{0%,100%{transform:scaleY(0.4);}50%{transform:scaleY(1);}}
+
+  .chat-box{background:var(--paper);border:1px solid var(--line-strong);min-height:300px;max-height:400px;
+    overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+  .msg{max-width:82%;padding:9px 12px;font-size:14px;line-height:1.5;}
   .msg.estudiante{background:var(--teal-fill);border:1px solid var(--teal);align-self:flex-end;border-radius:10px 2px 10px 10px;}
+  .msg.paciente{background:var(--page);border:1px solid var(--line);align-self:flex-start;border-radius:2px 10px 10px 10px;}
   .msg .who{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);display:block;margin-bottom:3px;}
-  .empty-hint{color:var(--ink-soft);font-size:13px;font-style:italic;margin:auto;}
+  .msg .heard{display:flex;align-items:center;gap:8px;color:var(--ink-soft);font-style:italic;}
+  .msg .revealed{margin-top:7px;padding-top:7px;border-top:1px dashed var(--line-strong);font-style:normal;color:var(--ink);}
+  .empty-hint{color:var(--ink-soft);font-size:13px;font-style:italic;margin:auto;text-align:center;line-height:1.5;}
 
-  .input-row{display:flex;gap:8px;margin-top:10px;}
-  .input-row input[type=text]{flex:1;border:1px solid var(--line-strong);background:var(--paper);padding:10px 12px;font-size:14px;font-family:var(--sans);color:var(--ink);}
-  .mic-btn{width:44px;flex-shrink:0;font-size:16px;}
-  .mic-btn.recording{background:var(--red);color:#fff;border-color:var(--red);}
+  .input-row{display:flex;gap:8px;margin-top:12px;}
+  .input-row input[type=text]{flex:1;}
 
-  .footer-actions{display:flex;justify-content:space-between;align-items:center;margin-top:14px;}
+  .footer-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap;}
   .status{font-family:var(--mono);font-size:11px;color:var(--ink-soft);}
 
-  .stamp-total{display:flex;align-items:center;gap:16px;border:2px solid var(--ink);padding:14px 18px;margin-bottom:18px;}
+  .form-msp{position:sticky;top:18px;}
+  .form-msp h3{font-size:13px;margin:0 0 3px;}
+  .form-msp .form-hint{font-size:12px;color:var(--ink-soft);line-height:1.45;margin:0 0 14px;}
+  .form-msp textarea{font-size:13px;}
+
+  .stamp-total{display:flex;align-items:center;gap:16px;border:2px solid var(--ink);padding:14px 18px;margin-bottom:18px;background:var(--paper);}
   .stamp-total .num{font-family:var(--mono);font-size:34px;font-weight:700;}
   .stamp-total .lbl{font-size:12px;color:var(--ink-soft);line-height:1.4;}
 
   .rubric-row{border-top:1px solid var(--line);padding:12px 0;}
   .rubric-row:first-of-type{border-top:none;}
-  .rubric-head{display:flex;justify-content:space-between;align-items:baseline;}
+  .rubric-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
   .rubric-head .name{font-weight:600;font-size:14px;}
-  .rubric-head .score{font-family:var(--mono);font-size:13px;padding:2px 8px;}
+  .rubric-head .score{font-family:var(--mono);font-size:13px;padding:2px 8px;white-space:nowrap;}
   .score-ok{background:var(--teal-fill);color:var(--teal-dark);}
   .score-mid{background:var(--amber-fill);color:var(--amber);}
   .score-low{background:var(--red-fill);color:var(--red);}
   .rubric-note{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.5;}
 
+  .transcript-line{padding:9px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.5;}
+  .transcript-line:first-child{border-top:none;}
+  .transcript-line .speaker{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);display:block;margin-bottom:2px;}
+  .transcript-line.paciente .speaker{color:var(--teal-dark);}
+
   .loading{display:flex;align-items:center;gap:8px;color:var(--ink-soft);font-size:13px;padding:20px 0;}
-  .spinner{width:14px;height:14px;border:2px solid var(--line-strong);border-top-color:var(--teal);border-radius:50%;animation:spin 0.7s linear infinite;}
+  .spinner{width:14px;height:14px;border:2px solid var(--line-strong);border-top-color:var(--teal);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  .foot-note{font-family:var(--mono);font-size:10px;color:var(--ink-soft);margin-top:26px;border-top:1px dashed var(--line-strong);padding-top:10px;line-height:1.6;}
-  .foot-note a{color:var(--teal-dark);}
+  .foot-note{font-family:var(--mono);font-size:10px;color:var(--ink-soft);margin-top:26px;
+    border-top:1px dashed var(--line-strong);padding-top:10px;line-height:1.6;
+    display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .foot-note button{background:none;border:none;padding:0;font-family:var(--mono);font-size:10px;
+    color:var(--ink-soft);text-decoration:underline;cursor:pointer;}
+  .foot-note button:hover{background:none;color:var(--ink);}
+
+  .docente-panel{display:none;background:var(--amber-fill);border:1px solid var(--amber);padding:14px;margin-top:14px;}
+  .docente-panel.open{display:block;}
+  .docente-panel h4{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:var(--amber);}
+  .docente-panel .toggle-row{display:flex;align-items:flex-start;gap:9px;margin-bottom:12px;font-size:13px;line-height:1.45;}
+  .docente-panel .toggle-row:last-child{margin-bottom:0;}
+  .docente-panel input[type=checkbox]{margin-top:3px;flex-shrink:0;}
+
+  @media print{
+    body{background:#fff;}
+    .no-print{display:none !important;}
+    .card{border:1px solid #999;break-inside:avoid;}
+    .wrap{max-width:none;padding:0;}
+  }
 </style>
 </head>
 <body>
@@ -101,125 +159,231 @@
 
   <div class="letterhead">
     <div>
-      <h1>SimulaMed — prototipo con Groq</h1>
-      <div class="sub">Paciente sintético · voz nativa del navegador · evaluación por rúbrica MSP 002</div>
+      <h1>SimulaMed · Simulación de Anamnesis Clínica</h1>
+      <div class="sub">Paciente estandarizado virtual · Formulario MSP 002</div>
     </div>
-    <div class="badge">costo marginal: $0 (nivel gratuito Groq)</div>
+    <div class="who-tag" id="whoTag" style="display:none;"></div>
   </div>
 
-  <div class="keybar" id="keybar">
-    <label for="apiKey">Groq API key</label>
-    <input type="password" id="apiKey" placeholder="gsk_...">
-    <select id="modelSelect">
-      <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
-      <option value="openai/gpt-oss-120b">openai/gpt-oss-120b</option>
-      <option value="qwen/qwen3-32b">qwen/qwen3-32b</option>
-    </select>
-    <button id="btnSaveKey">Guardar</button>
-    <span class="hint">Tu clave se guarda solo en este navegador (localStorage), nunca sale hacia otro servidor. Consíguela gratis en console.groq.com/keys. No compartas este archivo con la clave ya escrita adentro.</span>
-  </div>
+  <!-- ============ PANTALLA 1 · INGRESO ============ -->
+  <div class="screen active" id="screen-ingreso">
+    <div class="card">
+      <h2 class="section-title">Antes de empezar</h2>
+      <p class="section-note">
+        Vas a atender a un paciente que consulta por primera vez. El paciente <strong>te hablará</strong>:
+        escúchalo con atención, porque no vas a poder leer lo que dice. Tú escribes tus preguntas.
+        Anota lo que averigües en el Formulario MSP 002 que verás junto a la consulta.
+        Al terminar recibirás la transcripción completa y tu calificación.
+      </p>
 
-  <div class="tabs">
-    <div class="tab active" data-tab="caso">1 · Caso clínico</div>
-    <div class="tab" data-tab="consulta">2 · Consulta</div>
-    <div class="tab" data-tab="evaluacion">3 · Evaluación</div>
-  </div>
-
-  <div class="panel active" id="panel-caso">
-    <div class="card" id="casoCard">
-      <p class="empty-hint">Ingresa tu Groq API key arriba y pulsa "Generar otro caso" para empezar.</p>
-    </div>
-    <button class="btn-teal btn-block" id="btnNuevoCaso">Generar otro caso</button>
-  </div>
-
-  <div class="panel" id="panel-consulta">
-    <div class="grid">
-      <div class="card" id="pacienteResumen">
-        <p class="field-label">Paciente</p>
-        <p class="field-value">—</p>
+      <div class="form-row">
+        <label for="inpNombre">Nombre del estudiante</label>
+        <input type="text" id="inpNombre" placeholder="Nombres y apellidos" autocomplete="name">
       </div>
+
+      <div class="form-row">
+        <label for="inpParalelo">Paralelo</label>
+        <input type="text" id="inpParalelo" placeholder="Ej. Medicina 3-B">
+      </div>
+
+      <div class="form-row">
+        <label>Modalidad de práctica</label>
+        <div class="radio-set" id="modoSet">
+          <div class="radio-opt selected" data-modo="pares">
+            <span class="opt-name">En pares</span>
+            <span class="opt-desc">Dos estudiantes se turnan las preguntas. Recomendado para la primera práctica.</span>
+          </div>
+          <div class="radio-opt" data-modo="individual">
+            <span class="opt-name">Individual</span>
+            <span class="opt-desc">Un solo estudiante conduce toda la anamnesis.</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-teal btn-block" id="btnIniciar">Iniciar consulta</button>
+      <p class="status" id="ingresoStatus" style="margin-top:10px;"></p>
+    </div>
+
+    <div class="docente-panel" id="docentePanel">
+      <h4>Ajustes del docente</h4>
+      <div class="toggle-row">
+        <input type="checkbox" id="chkRevelarTexto">
+        <label for="chkRevelarTexto" style="cursor:pointer;">
+          <strong>Mostrar por escrito lo que dice el paciente.</strong>
+          Actívalo para estudiantes con dificultad auditiva, o si falla el audio del laboratorio.
+          Con esto apagado, el estudiante solo escucha — que es el modo de práctica previsto.
+        </label>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="chkVozLenta">
+        <label for="chkVozLenta" style="cursor:pointer;">
+          <strong>Voz más lenta.</strong> Útil en las primeras sesiones o si la bocina distorsiona.
+        </label>
+      </div>
+      <div class="form-row" style="margin-top:12px;">
+        <label for="modelSelect">Modelo de lenguaje</label>
+        <select id="modelSelect">
+          <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
+          <option value="openai/gpt-oss-120b">openai/gpt-oss-120b</option>
+          <option value="qwen/qwen3-32b">qwen/qwen3-32b</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PANTALLA 2 · SALA DE ESPERA ============ -->
+  <div class="screen" id="screen-sala">
+    <div class="card" id="salaCard">
+      <div class="loading"><div class="spinner"></div>Preparando al paciente…</div>
+    </div>
+  </div>
+
+  <!-- ============ PANTALLA 3 · CONSULTA ============ -->
+  <div class="screen" id="screen-consulta">
+    <div class="consulta-bar">
+      <div class="patient-id" id="barPaciente">—</div>
+      <div class="timer" id="timer">00:00</div>
+    </div>
+
+    <div class="speaking-banner" id="speakingBanner">
+      <span class="sound-wave"><span></span><span></span><span></span><span></span></span>
+      El paciente está hablando…
+    </div>
+
+    <div class="consulta-grid">
       <div>
-        <div class="chat-box" id="chatBox">
-          <p class="empty-hint">Genera un caso en la pestaña 1 para empezar la anamnesis.</p>
-        </div>
+        <div class="chat-box" id="chatBox"></div>
+
         <div class="input-row">
-          <button class="mic-btn" id="btnMic" title="Hablar">🎙</button>
-          <input type="text" id="txtInput" placeholder="Escribe tu pregunta al paciente o usa el micrófono">
-          <button id="btnEnviar">Enviar</button>
+          <input type="text" id="txtInput" placeholder="¿Qué le pregunta al paciente?" autocomplete="off">
+          <button class="btn-teal" id="btnEnviar">Preguntar</button>
         </div>
+
         <div class="footer-actions">
-          <span class="status" id="voiceStatus"></span>
-          <button class="btn-teal" id="btnEvaluar" disabled>Finalizar y evaluar →</button>
+          <span class="status" id="consultaStatus"></span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-small" id="btnRepetir" disabled>🔊 Repetir respuesta</button>
+            <button class="btn-teal" id="btnFinalizar" disabled>Cerrar consulta y evaluar →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card form-msp">
+        <h3>Formulario MSP 002</h3>
+        <p class="form-hint">Registra aquí lo que el paciente te vaya diciendo. Se evalúa junto con tus preguntas.</p>
+
+        <div class="form-row">
+          <label for="fMotivo">Motivo de consulta</label>
+          <textarea id="fMotivo" rows="2" data-campo="motivo_consulta"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="fEnfermedad">Enfermedad actual</label>
+          <textarea id="fEnfermedad" rows="4" data-campo="enfermedad_actual"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="fPersonales">Antecedentes personales</label>
+          <textarea id="fPersonales" rows="3" data-campo="antecedentes_personales"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="fFamiliares">Antecedentes familiares</label>
+          <textarea id="fFamiliares" rows="2" data-campo="antecedentes_familiares"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="fSistemas">Revisión por sistemas</label>
+          <textarea id="fSistemas" rows="3" data-campo="revision_sistemas"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="fVitales">Signos vitales</label>
+          <textarea id="fVitales" rows="2" data-campo="signos_vitales"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="fDiagnostico">Diagnóstico presuntivo y CIE-10</label>
+          <textarea id="fDiagnostico" rows="2" data-campo="diagnostico_presuntivo"></textarea>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="panel" id="panel-evaluacion">
-    <div id="evalContent">
-      <p class="empty-hint">Todavía no hay una consulta finalizada. Completa la anamnesis en la pestaña 2 y pulsa "Finalizar y evaluar".</p>
-    </div>
+  <!-- ============ PANTALLA 4 · REPORTE ============ -->
+  <div class="screen" id="screen-reporte">
+    <div id="reporteContent"></div>
   </div>
 
-  <div class="foot-note">
-    Motor de lenguaje: Groq API (modelos open-source, nivel gratuito sin tarjeta). Voz: Web Speech API del navegador (nativa, sin servidor). Ver README.md del repositorio para instrucciones de despliegue y notas de seguridad sobre la clave de API.
+  <div class="foot-note no-print">
+    <span>Facultad de Ciencias de la Salud Eugenio Espejo · Habilidades y Destrezas</span>
+    <button id="btnDocente">Ajustes del docente</button>
   </div>
 
 </div>
 
 <script>
-const state = { caso:null, historial:[], apiKey:'', model:'llama-3.3-70b-versatile' };
+const CLAVE_SESION = 'simulamed_sesion';
 
-async function loadKey(){
-  const savedModel = localStorage.getItem('simulamed_groq_model');
-  if(savedModel){
-    state.model = savedModel;
-    document.getElementById('modelSelect').value = savedModel;
-  }
-  try {
-    const res = await fetch("/api/groq", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: state.model,
-        max_tokens: 10,
-        messages: [{ role: "user", content: "ok" }]
-      })
-    });
-    if(res.ok){
-      state.apiKey = 'configured';
-      document.getElementById('keybar').classList.add('ok');
-      document.getElementById('apiKey').value = '✓ Configurada en servidor';
-      document.getElementById('apiKey').disabled = true;
-      document.getElementById('btnSaveKey').disabled = true;
-    }
-  } catch(e) {}
-}
-document.getElementById('btnSaveKey').onclick = ()=>{
-  const model = document.getElementById('modelSelect').value;
-  state.model = model;
-  localStorage.setItem('simulamed_groq_model', model);
+const state = {
+  estudiante: { nombre:'', paralelo:'', modo:'pares' },
+  caso: null,
+  historial: [],
+  formulario: {
+    motivo_consulta:'', enfermedad_actual:'', antecedentes_personales:'',
+    antecedentes_familiares:'', revision_sistemas:'', signos_vitales:'',
+    diagnostico_presuntivo:''
+  },
+  inicioConsulta: null,
+  ultimaRespuesta: '',
+  revelarTexto: false,
+  vozLenta: false,
+  model: 'llama-3.3-70b-versatile'
 };
-loadKey();
 
-function tabs(){
-  document.querySelectorAll('.tab').forEach(t=>{
-    t.onclick=()=>{
-      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
-      t.classList.add('active');
-      document.getElementById('panel-'+t.dataset.tab).classList.add('active');
-    };
-  });
+/* ---------- Navegación entre pantallas ---------- */
+function mostrarPantalla(nombre){
+  document.querySelectorAll('.screen').forEach(pantalla => pantalla.classList.remove('active'));
+  document.getElementById('screen-' + nombre).classList.add('active');
+  window.scrollTo(0,0);
 }
-tabs();
 
+/* ---------- Persistencia local ---------- */
+function guardarSesion(){
+  try{
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({
+      estudiante: state.estudiante,
+      caso: state.caso,
+      historial: state.historial,
+      formulario: state.formulario,
+      inicioConsulta: state.inicioConsulta
+    }));
+  }catch(error){ /* almacenamiento lleno o bloqueado: la sesión sigue en memoria */ }
+}
+
+function borrarSesion(){
+  try{ localStorage.removeItem(CLAVE_SESION); }catch(error){}
+}
+
+function recuperarSesion(){
+  try{
+    const guardado = localStorage.getItem(CLAVE_SESION);
+    if(!guardado) return null;
+    const datos = JSON.parse(guardado);
+    return (datos && datos.caso && datos.historial) ? datos : null;
+  }catch(error){ return null; }
+}
+
+function cargarPreferenciasDocente(){
+  state.revelarTexto = localStorage.getItem('simulamed_revelar') === 'si';
+  state.vozLenta = localStorage.getItem('simulamed_voz_lenta') === 'si';
+  const modeloGuardado = localStorage.getItem('simulamed_modelo');
+  if(modeloGuardado) state.model = modeloGuardado;
+
+  document.getElementById('chkRevelarTexto').checked = state.revelarTexto;
+  document.getElementById('chkVozLenta').checked = state.vozLenta;
+  document.getElementById('modelSelect').value = state.model;
+}
+
+/* ---------- Llamada al modelo (la clave vive en el servidor) ---------- */
 async function callGroq(messages, system, maxTokens){
-  const res = await fetch("/api/groq",{
+  const respuestaHttp = await fetch("/api/groq",{
     method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
+    headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({
       model: state.model,
       max_tokens: maxTokens || 1000,
@@ -227,228 +391,495 @@ async function callGroq(messages, system, maxTokens){
       messages: [{role:"system", content:system}, ...messages]
     })
   });
-  if(!res.ok){
-    const errText = await res.text();
-    throw new Error('API error: ' + res.status + ' ' + errText);
+  if(!respuestaHttp.ok){
+    const detalle = await respuestaHttp.text();
+    throw new Error('No se pudo contactar al paciente virtual (' + respuestaHttp.status + '). ' + detalle);
   }
-  const data = await res.json();
-  return data.choices && data.choices[0] ? data.choices[0].message.content : '';
+  const datos = await respuestaHttp.json();
+  return datos.choices && datos.choices[0] ? datos.choices[0].message.content : '';
 }
 
-function parseJSONLoose(text){
-  const cleaned = text.replace(/```json/g,'').replace(/```/g,'').trim();
-  return JSON.parse(cleaned);
+function parseJSONLoose(texto){
+  const limpio = texto.replace(/```json/g,'').replace(/```/g,'').trim();
+  return JSON.parse(limpio);
 }
 
+/* ---------- Voz del paciente ---------- */
+let vozEspanol = null;
+
+function elegirVoz(){
+  if(!('speechSynthesis' in window)) return;
+  const voces = speechSynthesis.getVoices();
+  vozEspanol = voces.find(voz => voz.lang.startsWith('es-EC'))
+            || voces.find(voz => voz.lang.startsWith('es-419'))
+            || voces.find(voz => voz.lang.startsWith('es'))
+            || null;
+}
+if('speechSynthesis' in window){
+  elegirVoz();
+  speechSynthesis.onvoiceschanged = elegirVoz;
+}
+
+function hablar(texto){
+  if(!('speechSynthesis' in window)){
+    document.getElementById('consultaStatus').textContent =
+      'Este navegador no reproduce voz. Pide al docente que active el texto en los ajustes.';
+    return;
+  }
+  speechSynthesis.cancel();
+  const locucion = new SpeechSynthesisUtterance(texto);
+  if(vozEspanol) locucion.voice = vozEspanol;
+  locucion.lang = 'es-EC';
+  locucion.rate = state.vozLenta ? 0.82 : 1;
+  locucion.onstart = ()=> document.getElementById('speakingBanner').classList.add('on');
+  locucion.onend   = ()=> document.getElementById('speakingBanner').classList.remove('on');
+  locucion.onerror = ()=> document.getElementById('speakingBanner').classList.remove('on');
+  speechSynthesis.speak(locucion);
+}
+
+/* ---------- Burbujas del chat ---------- */
+function agregarMensajeEstudiante(texto){
+  const contenedor = document.getElementById('chatBox');
+  const burbuja = document.createElement('div');
+  burbuja.className = 'msg estudiante';
+  burbuja.innerHTML = '<span class="who">Tú preguntaste</span>' + escaparHTML(texto);
+  contenedor.appendChild(burbuja);
+  contenedor.scrollTop = contenedor.scrollHeight;
+}
+
+function agregarMensajePaciente(texto){
+  const contenedor = document.getElementById('chatBox');
+  const burbuja = document.createElement('div');
+  burbuja.className = 'msg paciente';
+  burbuja.innerHTML =
+    '<span class="who">Paciente</span>' +
+    '<div class="heard">🔊 El paciente respondió — escucha con atención.</div>' +
+    (state.revelarTexto ? '<div class="revealed">' + escaparHTML(texto) + '</div>' : '');
+  contenedor.appendChild(burbuja);
+  contenedor.scrollTop = contenedor.scrollHeight;
+}
+
+function escaparHTML(texto){
+  const contenedor = document.createElement('div');
+  contenedor.textContent = texto;
+  return contenedor.innerHTML;
+}
+
+/* ---------- Cronómetro ---------- */
+let intervaloCronometro = null;
+
+function iniciarCronometro(){
+  clearInterval(intervaloCronometro);
+  intervaloCronometro = setInterval(()=>{
+    if(!state.inicioConsulta) return;
+    const segundosTotales = Math.floor((Date.now() - state.inicioConsulta)/1000);
+    const minutos = String(Math.floor(segundosTotales/60)).padStart(2,'0');
+    const segundos = String(segundosTotales%60).padStart(2,'0');
+    document.getElementById('timer').textContent = minutos + ':' + segundos;
+  }, 1000);
+}
+
+function detenerCronometro(){ clearInterval(intervaloCronometro); }
+
+/* ---------- Generación del caso ---------- */
 async function generarCaso(){
-  const casoCard = document.getElementById('casoCard');
-  casoCard.innerHTML = '<div class="loading"><div class="spinner"></div>Generando caso clínico…</div>';
-  document.getElementById('btnNuevoCaso').disabled = true;
+  const instruccionSistema = 'Eres un generador de casos clínicos para práctica de anamnesis de estudiantes de medicina en Ecuador (pregrado, materia Habilidades y Destrezas). Responde EXCLUSIVAMENTE con un objeto JSON válido, sin texto adicional ni backticks, con esta forma exacta: {"edad":number,"sexo":"Masculino"|"Femenino","ocupacion":string,"saludo_inicial":string,"guion_clinico":{"enfermedad_actual":string detallado,"antecedentes_personales":string,"antecedentes_familiares":string,"revision_sistemas":string,"signos_vitales":string,"diagnostico_presuntivo":string,"codigo_cie10":string}}. El campo "saludo_inicial" es lo primero que el paciente dice al entrar al consultorio: un saludo y su molestia principal en lenguaje coloquial ecuatoriano, VAGO y sin detalles (sin fechas exactas, sin intensidad, sin síntomas acompañantes), en 1-2 frases. Ejemplo del tono: "Buenos días doctor, vengo porque me ha estado doliendo aquí en el pecho y ya me tiene preocupado." Usa patologías prevalentes en atención primaria ecuatoriana (respiratorias, digestivas, metabólicas, osteomusculares). Varía el caso cada vez.';
 
-  const sys = "Eres un generador de casos clínicos para práctica de anamnesis de estudiantes de medicina en Ecuador (nivel pregrado, materia Habilidades y Destrezas). Responde EXCLUSIVAMENTE con un objeto JSON válido, sin texto adicional ni backticks, con esta forma exacta: {\"edad\":number,\"sexo\":\"Masculino\"|\"Femenino\",\"ocupacion\":string,\"motivo_consulta\":string breve (lo que el paciente diría al llegar),\"guion_clinico\":{\"enfermedad_actual\":string detallado,\"antecedentes_personales\":string,\"antecedentes_familiares\":string,\"revision_sistemas\":string,\"signos_vitales\":string,\"diagnostico_presuntivo\":string,\"codigo_cie10\":string}}. Usa patologías prevalentes y frecuentes en atención primaria ecuatoriana (respiratorias, digestivas, metabólicas, osteomusculares). Varía el caso cada vez que te lo pidan.";
+  const texto = await callGroq(
+    [{role:"user", content:"Genera un caso clínico nuevo."}],
+    instruccionSistema, 900
+  );
+  return parseJSONLoose(texto);
+}
+
+async function iniciarConsulta(){
+  const nombre = document.getElementById('inpNombre').value.trim();
+  const paralelo = document.getElementById('inpParalelo').value.trim();
+
+  if(!nombre){
+    document.getElementById('ingresoStatus').textContent = 'Escribe tu nombre para continuar.';
+    document.getElementById('inpNombre').focus();
+    return;
+  }
+
+  state.estudiante.nombre = nombre;
+  state.estudiante.paralelo = paralelo;
+  document.getElementById('btnIniciar').disabled = true;
+  document.getElementById('ingresoStatus').textContent = '';
+
+  mostrarPantalla('sala');
 
   try{
-    const text = await callGroq([{role:"user",content:"Genera un caso clínico nuevo."}], sys, 900);
-    const caso = parseJSONLoose(text);
-    state.caso = caso;
+    state.caso = await generarCaso();
     state.historial = [];
-    renderCaso();
-    renderResumenPaciente();
-    resetChat();
-  }catch(e){
-    casoCard.innerHTML = '<p class="empty-hint">' + (e.message || 'No se pudo generar el caso') + '. Verifica tu API key y pulsa "Generar otro caso" para reintentar.</p>';
+    mostrarSalaDeEspera();
+  }catch(error){
+    document.getElementById('salaCard').innerHTML =
+      '<p class="empty-hint">' + escaparHTML(error.message || 'No se pudo preparar el paciente') + '</p>' +
+      '<button class="btn-teal btn-block" onclick="location.reload()">Reintentar</button>';
   }
-  document.getElementById('btnNuevoCaso').disabled = false;
+  document.getElementById('btnIniciar').disabled = false;
 }
 
-function renderCaso(){
-  const c = state.caso;
-  document.getElementById('casoCard').innerHTML = `
-    <p class="field-label">Paciente</p>
-    <p class="field-value">${c.edad} años, ${c.sexo.toLowerCase()}, ${c.ocupacion}</p>
-    <p class="field-label">Motivo de consulta (lo que dice el paciente)</p>
-    <p class="field-value">"${c.motivo_consulta}"</p>
-    <p class="field-label">Nota</p>
-    <p class="field-value" style="color:var(--ink-soft);font-style:italic;">El resto del guion clínico (antecedentes, revisión por sistemas, diagnóstico) está oculto — el estudiante debe obtenerlo interrogando al paciente en la pestaña "Consulta".</p>
+/* Ficha de admisión: datos demográficos, SIN el motivo de consulta.
+   El motivo lo dice el paciente hablando, ya en la consulta. */
+function mostrarSalaDeEspera(){
+  const caso = state.caso;
+  document.getElementById('salaCard').innerHTML = `
+    <h2 class="section-title">Sala de espera</h2>
+    <p class="section-note">Ficha de admisión. El motivo de consulta te lo dirá el paciente cuando entres.</p>
+    <p class="field-label">Edad</p><p class="field-value">${caso.edad} años</p>
+    <p class="field-label">Sexo</p><p class="field-value">${escaparHTML(caso.sexo)}</p>
+    <p class="field-label">Ocupación</p><p class="field-value">${escaparHTML(caso.ocupacion)}</p>
+    <p class="section-note" style="margin-top:16px;margin-bottom:0;">
+      Recuerda: el paciente <strong>habla</strong>, no escribe. Sube el volumen o ponte los auriculares
+      antes de continuar. Puedes repetir cualquier respuesta con el botón 🔊.
+    </p>
+    <button class="btn-teal btn-block" id="btnEntrar">Hacer pasar al paciente</button>
   `;
+  document.getElementById('btnEntrar').onclick = entrarAConsulta;
 }
 
-function renderResumenPaciente(){
-  const c = state.caso;
-  document.getElementById('pacienteResumen').innerHTML = `
-    <p class="field-label">Paciente</p>
-    <p class="field-value">${c.edad} años<br>${c.sexo}<br>${c.ocupacion}</p>
-    <p class="field-label">Se presenta diciendo</p>
-    <p class="field-value" style="font-style:italic;">"${c.motivo_consulta}"</p>
-  `;
+async function entrarAConsulta(){
+  mostrarPantalla('consulta');
+
+  const caso = state.caso;
+  document.getElementById('barPaciente').innerHTML =
+    '<strong>Paciente:</strong> ' + caso.edad + ' años · ' + escaparHTML(caso.sexo) + ' · ' + escaparHTML(caso.ocupacion);
+  document.getElementById('whoTag').style.display = '';
+  document.getElementById('whoTag').textContent =
+    state.estudiante.nombre + (state.estudiante.paralelo ? ' · ' + state.estudiante.paralelo : '');
+
+  state.inicioConsulta = Date.now();
+  iniciarCronometro();
+
+  // El paciente abre la consulta hablando.
+  const saludo = caso.saludo_inicial;
+  state.historial.push({ role:'assistant', content: saludo });
+  state.ultimaRespuesta = saludo;
+  agregarMensajePaciente(saludo);
+  hablar(saludo);
+  document.getElementById('btnRepetir').disabled = false;
+  document.getElementById('btnFinalizar').disabled = false;
+  guardarSesion();
+
+  document.getElementById('txtInput').focus();
 }
 
-function resetChat(){
-  document.getElementById('chatBox').innerHTML = '<p class="empty-hint">Escribe o dicta tu primera pregunta al paciente.</p>';
-  document.getElementById('btnEvaluar').disabled = true;
-}
+/* ---------- Turno de pregunta ---------- */
+function construirInstruccionPaciente(){
+  const caso = state.caso;
+  const guion = caso.guion_clinico;
+  return `Eres un paciente virtual estandarizado en una simulación de anamnesis para estudiantes de medicina en Ecuador. Datos reales de tu caso (el estudiante NO los conoce, debe descubrirlos preguntando):
+Edad: ${caso.edad}, Sexo: ${caso.sexo}, Ocupación: ${caso.ocupacion}
+Enfermedad actual: ${guion.enfermedad_actual}
+Antecedentes personales: ${guion.antecedentes_personales}
+Antecedentes familiares: ${guion.antecedentes_familiares}
+Revisión por sistemas: ${guion.revision_sistemas}
+Signos vitales: ${guion.signos_vitales}
 
-function addMsg(who, text){
-  const box = document.getElementById('chatBox');
-  if(box.querySelector('.empty-hint')) box.innerHTML='';
-  const div = document.createElement('div');
-  div.className = 'msg ' + (who==='estudiante' ? 'estudiante' : 'paciente');
-  div.innerHTML = `<span class="who">${who==='estudiante'?'Estudiante':'Paciente'}</span>${text}`;
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
-}
-
-function speak(text){
-  if(!('speechSynthesis' in window)) return;
-  const u = new SpeechSynthesisUtterance(text);
-  const voices = speechSynthesis.getVoices();
-  const esVoice = voices.find(v=>v.lang.startsWith('es'));
-  if(esVoice) u.voice = esVoice;
-  u.lang = 'es-EC';
-  speechSynthesis.speak(u);
+Reglas estrictas:
+- Responde en primera persona, como paciente real, en lenguaje coloquial ecuatoriano.
+- MÁXIMO 2 o 3 frases cortas por turno. El estudiante te está ESCUCHANDO, no leyendo: si hablas de más, no te va a poder retener. Nunca enumeres varios síntomas de corrido.
+- Revela información solo si te la preguntan, directa o indirectamente. No te adelantes.
+- Nunca menciones el diagnóstico ni uses terminología médica técnica.
+- Si te preguntan por signos vitales, actúa como si te los estuvieran tomando y da los valores del guion.
+- Si la pregunta no aplica a tu caso, responde de forma natural y vaga.`;
 }
 
 async function enviarPregunta(texto){
-  if(!texto.trim() || !state.caso) return;
-  addMsg('estudiante', texto);
-  state.historial.push({role:'user', content:texto});
-  document.getElementById('btnEvaluar').disabled = false;
+  const pregunta = texto.trim();
+  if(!pregunta || !state.caso) return;
 
-  const c = state.caso;
-  const sys = `Eres un paciente virtual estandarizado en una simulación de anamnesis para estudiantes de medicina en Ecuador. Datos reales de tu caso (el estudiante NO los conoce, debe descubrirlos preguntando):
-Edad: ${c.edad}, Sexo: ${c.sexo}, Ocupación: ${c.ocupacion}
-Motivo de consulta inicial: ${c.motivo_consulta}
-Enfermedad actual: ${c.guion_clinico.enfermedad_actual}
-Antecedentes personales: ${c.guion_clinico.antecedentes_personales}
-Antecedentes familiares: ${c.guion_clinico.antecedentes_familiares}
-Revisión por sistemas: ${c.guion_clinico.revision_sistemas}
-Signos vitales: ${c.guion_clinico.signos_vitales}
+  agregarMensajeEstudiante(pregunta);
+  state.historial.push({ role:'user', content: pregunta });
+  guardarSesion();
 
-Reglas: responde en primera persona, como paciente real, con lenguaje coloquial ecuatoriano, en 1-3 frases por turno. Solo revela información si el estudiante la pregunta directa o indirectamente. Nunca menciones el diagnóstico ni uses terminología médica técnica. Si preguntan signos vitales, actúa como si te los estuvieran tomando y da los valores del guion. Si la pregunta no aplica a tu caso, responde de forma natural y vaga.`;
+  const indicador = document.createElement('div');
+  indicador.className = 'loading';
+  indicador.innerHTML = '<div class="spinner"></div>El paciente está pensando…';
+  document.getElementById('chatBox').appendChild(indicador);
+  document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
 
-  const pensando = document.createElement('div');
-  pensando.className = 'loading';
-  pensando.innerHTML = '<div class="spinner"></div>El paciente está respondiendo…';
-  document.getElementById('chatBox').appendChild(pensando);
+  document.getElementById('btnEnviar').disabled = true;
 
   try{
-    const respuesta = await callGroq(state.historial, sys, 300);
-    pensando.remove();
-    addMsg('paciente', respuesta);
-    state.historial.push({role:'assistant', content:respuesta});
-    speak(respuesta);
-  }catch(e){
-    pensando.remove();
-    addMsg('paciente', '(' + (e.message || 'No se pudo obtener respuesta') + ')');
+    const respuesta = await callGroq(state.historial, construirInstruccionPaciente(), 300);
+    indicador.remove();
+    state.historial.push({ role:'assistant', content: respuesta });
+    state.ultimaRespuesta = respuesta;
+    agregarMensajePaciente(respuesta);
+    hablar(respuesta);
+    document.getElementById('btnRepetir').disabled = false;
+    guardarSesion();
+  }catch(error){
+    indicador.remove();
+    document.getElementById('consultaStatus').textContent =
+      error.message || 'No se pudo obtener la respuesta. Intenta de nuevo.';
+  }
+  document.getElementById('btnEnviar').disabled = false;
+  document.getElementById('txtInput').focus();
+}
+
+/* ---------- Cierre y evaluación ---------- */
+async function finalizarConsulta(){
+  detenerCronometro();
+  speechSynthesis.cancel();
+  document.getElementById('speakingBanner').classList.remove('on');
+  mostrarPantalla('reporte');
+
+  const duracionSegundos = Math.floor((Date.now() - state.inicioConsulta)/1000);
+  const duracionTexto = Math.floor(duracionSegundos/60) + ' min ' + (duracionSegundos%60) + ' s';
+
+  document.getElementById('reporteContent').innerHTML =
+    '<div class="card"><div class="loading"><div class="spinner"></div>' +
+    'Evaluando tu anamnesis contra la rúbrica del Formulario MSP 002…</div></div>';
+
+  const guion = state.caso.guion_clinico;
+
+  const instruccionSistema = `Eres un docente evaluador de Habilidades y Destrezas en medicina, calificando una anamnesis simulada contra el estándar del Formulario MSP 002 de Ecuador.
+
+Caso real de referencia (el estudiante nunca lo vio, debía descubrirlo preguntando): ${JSON.stringify(guion)}
+
+Evalúas DOS cosas a la vez:
+1. La calidad del interrogatorio: qué preguntó el estudiante, en qué orden, si indagó lo pertinente.
+2. La fidelidad del registro: si lo que el estudiante anotó en el Formulario MSP 002 corresponde a lo que el paciente realmente le dijo. Penaliza tanto lo que el paciente dijo y no fue registrado, como lo que el estudiante registró sin que el paciente lo dijera.
+
+Responde EXCLUSIVAMENTE con JSON válido, sin texto adicional ni backticks, con esta forma:
+{"puntaje_total":number(0-10),"criterios":[{"nombre":"Motivo de consulta","puntaje":number(0-2),"comentario":string},{"nombre":"Enfermedad actual","puntaje":number(0-2),"comentario":string},{"nombre":"Antecedentes personales y familiares","puntaje":number(0-2),"comentario":string},{"nombre":"Revisión por sistemas y signos vitales","puntaje":number(0-2),"comentario":string},{"nombre":"Registro en el Formulario MSP 002 y orientación diagnóstica","puntaje":number(0-2),"comentario":string}],"feedback_general":string breve dirigido al estudiante en segunda persona}
+
+Evalúa según lo que el estudiante realmente preguntó y registró, no según el guion completo. Sé concreto: cita qué faltó preguntar.`;
+
+  const transcripcion = state.historial
+    .map(turno => (turno.role === 'user' ? 'Estudiante: ' : 'Paciente: ') + turno.content)
+    .join('\n');
+
+  const entrada = 'TRANSCRIPCIÓN DE LA CONSULTA:\n' + transcripcion +
+    '\n\nFORMULARIO MSP 002 LLENADO POR EL ESTUDIANTE:\n' + JSON.stringify(state.formulario, null, 2);
+
+  try{
+    const texto = await callGroq([{role:"user", content: entrada}], instruccionSistema, 1400);
+    const evaluacion = parseJSONLoose(texto);
+    renderReporte(evaluacion, duracionTexto);
+    borrarSesion();
+  }catch(error){
+    renderReporte(null, duracionTexto, error.message);
   }
 }
 
-document.getElementById('btnEnviar').onclick = ()=>{
-  const input = document.getElementById('txtInput');
-  const val = input.value;
-  input.value='';
-  enviarPregunta(val);
-};
-document.getElementById('txtInput').addEventListener('keydown', e=>{
-  if(e.key==='Enter') document.getElementById('btnEnviar').click();
-});
-document.getElementById('btnNuevoCaso').onclick = generarCaso;
-
-let recognition = null;
-let recording = false;
-function setupMic(){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const micBtn = document.getElementById('btnMic');
-  if(!SR){
-    micBtn.disabled = true;
-    document.getElementById('voiceStatus').textContent = 'Reconocimiento de voz no disponible en este navegador — usa el texto.';
-    return;
-  }
-  recognition = new SR();
-  recognition.lang = 'es-EC';
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-
-  recognition.onresult = (e)=>{
-    const texto = e.results[0][0].transcript;
-    document.getElementById('txtInput').value = texto;
-  };
-  recognition.onend = ()=>{
-    recording = false;
-    micBtn.classList.remove('recording');
-    document.getElementById('voiceStatus').textContent = '';
-  };
-  recognition.onerror = ()=>{
-    recording = false;
-    micBtn.classList.remove('recording');
-    document.getElementById('voiceStatus').textContent = 'No se captó audio, intenta de nuevo.';
-  };
-
-  micBtn.onclick = ()=>{
-    if(recording){ recognition.stop(); return; }
-    recording = true;
-    micBtn.classList.add('recording');
-    document.getElementById('voiceStatus').textContent = 'Escuchando…';
-    recognition.start();
-  };
-}
-setupMic();
-
-document.getElementById('btnEvaluar').onclick = async ()=>{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
-  document.querySelector('[data-tab=evaluacion]').classList.add('active');
-  document.getElementById('panel-evaluacion').classList.add('active');
-
-  const evalDiv = document.getElementById('evalContent');
-  evalDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Evaluando la anamnesis contra la rúbrica del Formulario MSP 002…</div>';
-
-  const c = state.caso;
-  const transcript = state.historial.map(m=>(m.role==='user'?'Estudiante: ':'Paciente: ')+m.content).join('\\n');
-
-  const sys = `Eres un docente evaluador de Habilidades y Destrezas en medicina, calificando una anamnesis simulada contra el estándar del Formulario MSP 002 de Ecuador. Caso real (referencia, el estudiante no lo vio): ${JSON.stringify(c.guion_clinico)}. Diagnóstico esperado: ${c.guion_clinico.diagnostico_presuntivo} (CIE-10: ${c.guion_clinico.codigo_cie10}).
-
-Responde EXCLUSIVAMENTE con JSON válido, sin texto adicional ni backticks, con esta forma: {"puntaje_total":number (0-10),"criterios":[{"nombre":"Motivo de consulta","puntaje":number(0-2),"comentario":string},{"nombre":"Enfermedad actual","puntaje":number(0-2),"comentario":string},{"nombre":"Antecedentes personales y familiares","puntaje":number(0-2),"comentario":string},{"nombre":"Revisión por sistemas","puntaje":number(0-2),"comentario":string},{"nombre":"Orientación diagnóstica y CIE-10","puntaje":number(0-2),"comentario":string}],"feedback_general":string breve}. Evalúa según lo que el estudiante realmente preguntó en la transcripción, no según el guion completo.`;
-
-  try{
-    const text = await callGroq([{role:"user",content:"Transcripción de la consulta:\\n"+transcript}], sys, 1000);
-    const ev = parseJSONLoose(text);
-    renderEvaluacion(ev);
-  }catch(e){
-    evalDiv.innerHTML = '<p class="empty-hint">' + (e.message || 'No se pudo generar la evaluación') + '. Vuelve a intentar desde el botón "Finalizar y evaluar" en la pestaña 2.</p>';
-  }
-};
-
-function scoreClass(p, max){
-  const ratio = p/max;
-  if(ratio>=0.75) return 'score-ok';
-  if(ratio>=0.4) return 'score-mid';
+function claseSegunPuntaje(puntaje, maximo){
+  const proporcion = puntaje / maximo;
+  if(proporcion >= 0.75) return 'score-ok';
+  if(proporcion >= 0.4)  return 'score-mid';
   return 'score-low';
 }
 
-function renderEvaluacion(ev){
-  const rows = ev.criterios.map(c=>`
-    <div class="rubric-row">
-      <div class="rubric-head">
-        <span class="name">${c.nombre}</span>
-        <span class="score ${scoreClass(c.puntaje,2)}">${c.puntaje}/2</span>
-      </div>
-      <p class="rubric-note">${c.comentario}</p>
+function renderReporte(evaluacion, duracionTexto, mensajeError){
+  const caso = state.caso;
+  const guion = caso.guion_clinico;
+
+  const bloqueRubrica = evaluacion ? `
+    <div class="stamp-total">
+      <div class="num">${evaluacion.puntaje_total}/10</div>
+      <div class="lbl">Evaluación automática<br>según Formulario MSP 002</div>
+    </div>
+    <div class="card">
+      ${evaluacion.criterios.map(criterio => `
+        <div class="rubric-row">
+          <div class="rubric-head">
+            <span class="name">${escaparHTML(criterio.nombre)}</span>
+            <span class="score ${claseSegunPuntaje(criterio.puntaje,2)}">${criterio.puntaje}/2</span>
+          </div>
+          <p class="rubric-note">${escaparHTML(criterio.comentario)}</p>
+        </div>
+      `).join('')}
+    </div>
+    <div class="card">
+      <p class="field-label">Retroalimentación general</p>
+      <p class="field-value">${escaparHTML(evaluacion.feedback_general)}</p>
+    </div>
+  ` : `
+    <div class="card">
+      <p class="empty-hint">No se pudo generar la calificación automática.<br>
+      ${escaparHTML(mensajeError || '')}<br><br>
+      La transcripción y tu formulario sí quedaron registrados abajo.</p>
+    </div>
+  `;
+
+  const bloqueTranscripcion = state.historial.map(turno => `
+    <div class="transcript-line ${turno.role === 'user' ? 'estudiante' : 'paciente'}">
+      <span class="speaker">${turno.role === 'user' ? 'Estudiante' : 'Paciente'}</span>
+      ${escaparHTML(turno.content)}
     </div>
   `).join('');
 
-  document.getElementById('evalContent').innerHTML = `
-    <div class="stamp-total">
-      <div class="num">${ev.puntaje_total}/10</div>
-      <div class="lbl">Evaluación automática<br>según Formulario MSP 002</div>
+  const etiquetas = {
+    motivo_consulta:'Motivo de consulta',
+    enfermedad_actual:'Enfermedad actual',
+    antecedentes_personales:'Antecedentes personales',
+    antecedentes_familiares:'Antecedentes familiares',
+    revision_sistemas:'Revisión por sistemas',
+    signos_vitales:'Signos vitales',
+    diagnostico_presuntivo:'Diagnóstico presuntivo y CIE-10'
+  };
+
+  const bloqueFormulario = Object.keys(etiquetas).map(campo => `
+    <p class="field-label">${etiquetas[campo]}</p>
+    <p class="field-value">${state.formulario[campo] ? escaparHTML(state.formulario[campo]) : '<em style="color:var(--ink-soft);">— sin registrar —</em>'}</p>
+  `).join('');
+
+  document.getElementById('reporteContent').innerHTML = `
+    <div class="card">
+      <h2 class="section-title">Reporte de la consulta</h2>
+      <p class="section-note" style="margin-bottom:14px;">
+        ${escaparHTML(state.estudiante.nombre)}${state.estudiante.paralelo ? ' · ' + escaparHTML(state.estudiante.paralelo) : ''}
+        · modalidad ${state.estudiante.modo} · duración ${duracionTexto}
+        · ${state.historial.filter(t => t.role === 'user').length} preguntas formuladas
+      </p>
     </div>
-    <div class="card">${rows}</div>
-    <div class="card" style="margin-top:14px;">
-      <p class="field-label">Retroalimentación general</p>
-      <p class="field-value">${ev.feedback_general}</p>
+
+    ${bloqueRubrica}
+
+    <div class="card">
+      <h2 class="section-title">Caso real del paciente</h2>
+      <p class="section-note">Esto es lo que el paciente tenía. Compáralo con lo que lograste averiguar.</p>
+      <p class="field-label">Enfermedad actual</p><p class="field-value">${escaparHTML(guion.enfermedad_actual)}</p>
+      <p class="field-label">Antecedentes personales</p><p class="field-value">${escaparHTML(guion.antecedentes_personales)}</p>
+      <p class="field-label">Antecedentes familiares</p><p class="field-value">${escaparHTML(guion.antecedentes_familiares)}</p>
+      <p class="field-label">Revisión por sistemas</p><p class="field-value">${escaparHTML(guion.revision_sistemas)}</p>
+      <p class="field-label">Signos vitales</p><p class="field-value">${escaparHTML(guion.signos_vitales)}</p>
+      <p class="field-label">Diagnóstico presuntivo</p><p class="field-value">${escaparHTML(guion.diagnostico_presuntivo)} · CIE-10 ${escaparHTML(guion.codigo_cie10)}</p>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Tu Formulario MSP 002</h2>
+      ${bloqueFormulario}
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Transcripción completa</h2>
+      <p class="section-note">Ahora sí puedes leer todo lo que el paciente te dijo.</p>
+      ${bloqueTranscripcion}
+    </div>
+
+    <div class="footer-actions no-print">
+      <button onclick="window.print()">Imprimir / Guardar PDF</button>
+      <button class="btn-teal" onclick="location.reload()">Nueva consulta</button>
     </div>
   `;
 }
+
+/* ---------- Enlaces de interfaz ---------- */
+document.querySelectorAll('#modoSet .radio-opt').forEach(opcion => {
+  opcion.onclick = ()=>{
+    document.querySelectorAll('#modoSet .radio-opt').forEach(otra => otra.classList.remove('selected'));
+    opcion.classList.add('selected');
+    state.estudiante.modo = opcion.dataset.modo;
+  };
+});
+
+document.getElementById('btnIniciar').onclick = iniciarConsulta;
+
+document.getElementById('inpParalelo').addEventListener('keydown', evento => {
+  if(evento.key === 'Enter') iniciarConsulta();
+});
+
+document.getElementById('btnEnviar').onclick = ()=>{
+  const campo = document.getElementById('txtInput');
+  const valor = campo.value;
+  campo.value = '';
+  enviarPregunta(valor);
+};
+
+document.getElementById('txtInput').addEventListener('keydown', evento => {
+  if(evento.key === 'Enter') document.getElementById('btnEnviar').click();
+});
+
+document.getElementById('btnRepetir').onclick = ()=>{
+  if(state.ultimaRespuesta) hablar(state.ultimaRespuesta);
+};
+
+document.getElementById('btnFinalizar').onclick = finalizarConsulta;
+
+document.querySelectorAll('.form-msp textarea').forEach(campo => {
+  campo.addEventListener('input', ()=>{
+    state.formulario[campo.dataset.campo] = campo.value;
+    guardarSesion();
+  });
+});
+
+document.getElementById('btnDocente').onclick = ()=>{
+  const panel = document.getElementById('docentePanel');
+  panel.classList.toggle('open');
+  if(panel.classList.contains('open')) mostrarPantalla('ingreso');
+};
+
+document.getElementById('chkRevelarTexto').onchange = evento => {
+  state.revelarTexto = evento.target.checked;
+  localStorage.setItem('simulamed_revelar', state.revelarTexto ? 'si' : 'no');
+};
+
+document.getElementById('chkVozLenta').onchange = evento => {
+  state.vozLenta = evento.target.checked;
+  localStorage.setItem('simulamed_voz_lenta', state.vozLenta ? 'si' : 'no');
+};
+
+document.getElementById('modelSelect').onchange = evento => {
+  state.model = evento.target.value;
+  localStorage.setItem('simulamed_modelo', state.model);
+};
+
+/* ---------- Reanudar una consulta interrumpida ---------- */
+function ofrecerReanudar(){
+  const sesion = recuperarSesion();
+  if(!sesion) return;
+
+  const estado = document.getElementById('ingresoStatus');
+  estado.innerHTML =
+    'Tienes una consulta sin terminar de ' + escaparHTML(sesion.estudiante.nombre) + '. ' +
+    '<button class="btn-small" id="btnReanudar">Retomarla</button> ' +
+    '<button class="btn-small" id="btnDescartar">Descartar</button>';
+
+  document.getElementById('btnReanudar').onclick = ()=>{
+    state.estudiante = sesion.estudiante;
+    state.caso = sesion.caso;
+    state.historial = sesion.historial;
+    state.formulario = sesion.formulario;
+    state.inicioConsulta = sesion.inicioConsulta || Date.now();
+
+    mostrarPantalla('consulta');
+    document.getElementById('barPaciente').innerHTML =
+      '<strong>Paciente:</strong> ' + state.caso.edad + ' años · ' +
+      escaparHTML(state.caso.sexo) + ' · ' + escaparHTML(state.caso.ocupacion);
+    document.getElementById('whoTag').style.display = '';
+    document.getElementById('whoTag').textContent =
+      state.estudiante.nombre + (state.estudiante.paralelo ? ' · ' + state.estudiante.paralelo : '');
+
+    document.getElementById('chatBox').innerHTML = '';
+    state.historial.forEach(turno => {
+      if(turno.role === 'user') agregarMensajeEstudiante(turno.content);
+      else { agregarMensajePaciente(turno.content); state.ultimaRespuesta = turno.content; }
+    });
+
+    document.querySelectorAll('.form-msp textarea').forEach(campo => {
+      campo.value = state.formulario[campo.dataset.campo] || '';
+    });
+
+    document.getElementById('btnRepetir').disabled = !state.ultimaRespuesta;
+    document.getElementById('btnFinalizar').disabled = false;
+    iniciarCronometro();
+    document.getElementById('txtInput').focus();
+  };
+
+  document.getElementById('btnDescartar').onclick = ()=>{
+    borrarSesion();
+    estado.textContent = '';
+  };
+}
+
+cargarPreferenciasDocente();
+ofrecerReanudar();
+document.getElementById('inpNombre').focus();
 </script>
 </body>
 </html>

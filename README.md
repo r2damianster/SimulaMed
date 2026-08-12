@@ -1,57 +1,78 @@
-# SimulaMed — prototipo 0-cost
+# SimulaMed — simulador de anamnesis clínica
 
-Prototipo funcional de simulación clínica digital para la práctica de anamnesis y llenado técnico del Formulario MSP 002, derivado de la propuesta "Proyecto SimulaMed" (FCSEE, Universidad UTE). Reemplaza el stack propuesto originalmente (Character.AI + Google Pinpoint + Gemini Pro) por herramientas de costo cero o marginal:
+Simulador de consulta médica para la práctica de anamnesis y llenado del Formulario MSP 002, derivado de la propuesta "Proyecto SimulaMed" (FCSEE, Universidad UTE). Reemplaza el stack propuesto originalmente (Character.AI + Google Pinpoint + Gemini Pro) por herramientas de costo cero o marginal:
 
-| Función | Herramienta original | Herramienta en este prototipo |
+| Función | Herramienta original | Herramienta en este proyecto |
 |---|---|---|
 | Paciente sintético conversacional | Character.AI | Groq API (modelos open-source, nivel gratuito) |
-| Voz → texto | Google Pinpoint | Web Speech API del navegador |
-| Texto → voz del paciente | — | SpeechSynthesis API del navegador |
+| Voz del paciente | — | SpeechSynthesis API del navegador |
 | Evaluación con rúbrica | Gemini Pro | Groq API, mismo prompt estructurado |
+| Protección de la clave | — | Vercel Edge Function (`api/groq.js`) |
 | Registro de resultados | — | Pendiente (ver Roadmap) |
 
-## Cómo usarlo
+## Cómo funciona la práctica
 
-1. Abre `index.html` directamente en Chrome (el reconocimiento de voz solo funciona en navegadores basados en Chromium).
-2. Consigue una API key gratuita en [console.groq.com/keys](https://console.groq.com/keys) — no pide tarjeta de crédito.
-3. Pega la clave en el campo superior y pulsa "Guardar". Se guarda solo en el `localStorage` de tu navegador.
-4. Pestaña **1 · Caso clínico**: genera un caso nuevo (patología variable cada vez).
-5. Pestaña **2 · Consulta**: interroga al paciente por voz (botón del micrófono) o texto. El paciente responde por voz y texto.
-6. Pestaña **3 · Evaluación**: al pulsar "Finalizar y evaluar", se califica la transcripción real contra los cinco campos del Formulario MSP 002 y se genera un puntaje sobre 10 con retroalimentación.
+1. **Ingreso.** El estudiante registra su nombre, paralelo y modalidad: en pares (recomendado para la primera práctica, baja la ansiedad inicial) o individual.
+2. **Sala de espera.** Ficha de admisión con edad, sexo y ocupación. El motivo de consulta no aparece escrito.
+3. **El paciente entra hablando.** Se presenta y dice su molestia principal de forma vaga, como un paciente real: *"Buenos días doctor, vengo porque me ha estado doliendo aquí…"*
+4. **El estudiante escribe sus preguntas.** El paciente responde **por voz, sin texto en pantalla** — hay que escucharlo. El botón 🔊 repite la última respuesta las veces que haga falta.
+5. **Formulario MSP 002 en pantalla**, junto al chat. Ahí se anota lo que se va averiguando, mientras dura la consulta.
+6. **Reporte final.** Al cerrar la consulta se revela la transcripción completa, el caso clínico real del paciente, el formulario tal como quedó llenado y la calificación sobre 10.
+
+### Por qué el estudiante escribe y el paciente habla
+
+No es una limitación técnica, es el diseño de la práctica:
+
+- **Escribir la pregunta** obliga a formularla con precisión clínica. Al hablar se improvisa y se divaga.
+- **Escuchar la respuesta** obliga a retener, que es la competencia real de la anamnesis: en consulta no se puede releer al paciente.
+- Como efecto secundario, al no usar `SpeechRecognition` (exclusivo de Chrome) el simulador **funciona en cualquier navegador**: Chrome, Firefox, Safari, Edge y móvil.
+
+Si el audio del laboratorio falla, o hay un estudiante con dificultad auditiva, el panel **Ajustes del docente** (pie de página) permite mostrar por escrito lo que dice el paciente y bajar la velocidad de la voz.
 
 ## Despliegue
 
-Es un sitio estático de un solo archivo — no requiere build ni backend para el piloto:
+### Vercel (recomendado)
 
-### Opción 1: GitHub Pages (recomendado para piloto)
-- Activa Pages sobre la rama principal en la configuración del repositorio. Gratis.
-- La clave se ingresa en el navegador (ver **Nota de seguridad**).
+El proyecto usa una función serverless para que la clave de Groq nunca llegue al navegador.
 
-### Opción 2: Vercel
-- Arrastra la carpeta al [panel de Vercel](https://vercel.com). Gratis en el nivel free.
-- Para usar un proxy y ocultar la clave: agrega variables de environment en **Settings > Environment Variables**:
-  - `GROQ_API_KEY`: tu clave de Groq (nunca en el código fuente)
-  - `GROQ_MODEL`: modelo de Groq (opcional; defecto: `llama-3.3-70b-versatile`)
-- Luego despliega `proxy-example/cloudflare-worker.js` en Cloudflare Workers y apunta a ese proxy.
+1. Importar el repositorio en [vercel.com](https://vercel.com).
+2. **Settings → Environment Variables** → agregar `GROQ_API_KEY` con una clave de [console.groq.com/keys](https://console.groq.com/keys) (gratuita, sin tarjeta).
+3. Desplegar. `api/groq.js` se detecta automáticamente.
 
-### Opción 3: Local
-- Abrir `index.html` directamente también funciona.
-- Nota: algunos navegadores restringen el micrófono en `file://`; si pasa, sirve la carpeta con `python -m http.server`.
+Opcionalmente `GROQ_MODEL` para cambiar el modelo por defecto.
 
-## Nota de seguridad importante
+### Local
 
-La clave de API vive en el navegador del estudiante/docente que la ingresa (`localStorage`), y las llamadas salen directo del navegador hacia Groq. Esto es aceptable para un piloto de un solo computador de laboratorio, pero **no es seguro para producción o para compartir el repositorio públicamente con una clave ya cargada**: cualquiera con acceso al código fuente de la página o a las herramientas de desarrollador puede leer la clave y consumir tu cuota.
+```bash
+# Crear .env en la raíz (está en .gitignore, nunca se sube)
+echo "GROQ_API_KEY=gsk_tu_clave_aqui" > .env
 
-Para escalar a toda la facultad, mover la llamada a Groq detrás de un proxy propio evita exponer la clave. Ver `proxy-example/cloudflare-worker.js` para una referencia mínima desplegable gratis en Cloudflare Workers.
+npx vercel dev
+```
 
-## Roadmap sugerido
+Abrir `index.html` como archivo suelto **no funciona**: sin servidor no existe `/api/groq` y el paciente no puede responder.
 
-- [ ] Proxy serverless para ocultar la API key (ver `proxy-example/`).
-- [ ] Transcripción con Whisper de Groq (`whisper-large-v3`, ~$0.04/hora de audio) en vez de Web Speech API, para mayor precisión en acento ecuatoriano.
-- [ ] Registro automático de cada evaluación en Google Sheets vía Google Apps Script (aprovechando el flujo de formularios que ya usa el equipo).
-- [ ] Banco de casos clínicos curado por los docentes SME en vez de generación libre por el modelo, para alinear estrictamente con el sílabo.
-- [ ] Exportar la transcripción y evaluación de cada sesión en PDF para el expediente del estudiante.
+Ver `env.plantilla.txt` para el detalle de las variables.
+
+## Seguridad
+
+La clave de Groq vive únicamente como variable de entorno del servidor. El navegador llama a `/api/groq`, que agrega la cabecera `Authorization` del lado del servidor y reenvía a Groq. En ningún momento la clave se expone en el código del cliente, ni se guarda en `localStorage`, ni viaja al navegador.
+
+**No escribir nunca la clave real dentro de `index.html` ni en ningún archivo versionado.** GitHub tiene push protection activo y rechaza el commit; y una clave que llegó a publicarse queda comprometida aunque se borre después — hay que revocarla en la consola de Groq y generar una nueva.
+
+`.env` y `.env.example` están en `.gitignore`. La plantilla pública es `env.plantilla.txt`.
+
+## Privacidad
+
+La sesión en curso (caso, transcripción, formulario) se guarda en el `localStorage` del navegador para poder retomarla si la página se recarga por accidente. Se borra al terminar la evaluación. No se envía nada a ningún servidor salvo las llamadas a Groq necesarias para que el paciente responda y para calificar.
+
+## Roadmap
+
+- [ ] Banco de casos clínicos curado por los docentes SME en vez de generación libre, para alinear estrictamente con el sílabo.
+- [ ] Rúbrica exacta de la facultad en lugar de los cinco criterios genéricos actuales.
+- [ ] Registro automático de cada evaluación en Google Sheets vía Apps Script.
+- [ ] Transcripción con Whisper de Groq (`whisper-large-v3`, ~$0.04/hora de audio) para reactivar la voz de entrada con buena precisión en acento ecuatoriano.
 
 ## Origen
 
-Este prototipo nace del análisis de la propuesta "Proyecto SimulaMed" (Facultad de Ciencias de la Salud Eugenio Espejo, Universidad UTE) como prueba de concepto de una arquitectura de costo cero para la misma práctica pedagógica.
+Este proyecto nace del análisis de la propuesta "Proyecto SimulaMed" (Facultad de Ciencias de la Salud Eugenio Espejo, Universidad UTE) como prueba de concepto de una arquitectura de costo cero para la misma práctica pedagógica.

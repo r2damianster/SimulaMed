@@ -5,8 +5,11 @@ Thumbs.db
 .idea/
 *.swp
 
-# Variables de entorno y secretos (para cuando se agregue el proxy)
+# Variables de entorno y secretos
+# .env.example está ignorado a propósito: en este proyecto se usa como archivo
+# local de trabajo con la clave real. La plantilla pública es env.plantilla.txt
 .env
+.env.example
 .env.local
 .env.*.local
 *.key
