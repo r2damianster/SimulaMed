@@ -998,12 +998,13 @@ document.getElementById('btnRerecord').onclick = ()=>{
   document.getElementById('btnMicrophone').disabled = false;
 };
 
-document.getElementById('btnSendAudio').onclick = ()=>{
+document.getElementById('btnSendAudio').onclick = async ()=>{
   if(pulgadaTranscripcion){
     document.getElementById('btnSendAudio').disabled = true;
-    enviarPregunta(pulgadaTranscripcion);
+    await enviarPregunta(pulgadaTranscripcion);
     limpiarTranscripcion();
-    mostrarRecordadorAudio(false);
+    mostrarRecordadorAudio(state.permitirVoz);
+    document.getElementById('btnSendAudio').disabled = false;
   }
 };
 
