@@ -1,0 +1,21 @@
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Variables de entorno y secretos (para cuando se agregue el proxy)
+.env
+.env.local
+.env.*.local
+*.key
+
+# Dependencias (si en el futuro se agrega tooling npm/Node para el proxy)
+node_modules/
+dist/
+build/
+
+# Logs
+npm-debug.log*
+*.log
