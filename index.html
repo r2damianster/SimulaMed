@@ -101,6 +101,18 @@
   .input-row{display:flex;gap:8px;margin-top:12px;}
   .input-row input[type=text]{flex:1;}
 
+  .audio-recorder{display:none;margin-top:12px;}
+  .audio-recorder.active{display:block;}
+  .recording-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .btn-mic{background:var(--red-fill);border-color:var(--red);color:var(--red);}
+  .btn-mic:hover{background:var(--red);color:#fff;}
+  .btn-mic.recording{animation:pulse 1s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.7;}}
+  .audio-preview{background:var(--teal-fill);border:1px solid var(--teal);padding:10px;border-radius:4px;margin-bottom:10px;display:none;}
+  .audio-preview.show{display:block;}
+  .preview-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--teal-dark);margin-bottom:4px;}
+  .preview-text{font-size:14px;color:var(--ink);line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+
   .footer-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap;}
   .status{font-family:var(--mono);font-size:11px;color:var(--ink-soft);}
 
@@ -220,6 +232,14 @@
           <strong>Voz más lenta.</strong> Útil en las primeras sesiones o si la bocina distorsiona.
         </label>
       </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="chkPermitirVoz">
+        <label for="chkPermitirVoz" style="cursor:pointer;">
+          <strong>Permitir entrada de voz con Whisper.</strong>
+          Si está activo, el estudiante puede grabar sus preguntas en lugar de escribirlas.
+          Requiere micrófono y conexión a internet. La grabación se transcribe con Whisper (Groq).
+        </label>
+      </div>
       <div class="form-row" style="margin-top:12px;">
         <label for="modelSelect">Modelo de lenguaje</label>
         <select id="modelSelect">
@@ -257,6 +277,21 @@
         <div class="input-row">
           <input type="text" id="txtInput" placeholder="¿Qué le pregunta al paciente?" autocomplete="off">
           <button class="btn-teal" id="btnEnviar">Preguntar</button>
+        </div>
+
+        <div class="audio-recorder" id="audioRecorder">
+          <div class="recording-controls">
+            <button class="btn-mic" id="btnMicrophone">🎤 Grabar pregunta</button>
+            <button class="btn-small" id="btnDiscardAudio" style="display:none;">✕ Descartar</button>
+          </div>
+          <div class="audio-preview" id="audioPreview">
+            <div class="preview-label">Tu pregunta (revisada por Whisper):</div>
+            <div class="preview-text" id="previewText"></div>
+            <div style="margin-top:10px;display:flex;gap:8px;">
+              <button class="btn-small" id="btnRerecord">Re-grabar</button>
+              <button class="btn-teal" id="btnSendAudio">Enviar pregunta →</button>
+            </div>
+          </div>
         </div>
 
         <div class="footer-actions">
@@ -332,6 +367,7 @@ const state = {
   ultimaRespuesta: '',
   revelarTexto: false,
   vozLenta: false,
+  permitirVoz: false,
   model: 'llama-3.3-70b-versatile'
 };
 
@@ -371,11 +407,13 @@ function recuperarSesion(){
 function cargarPreferenciasDocente(){
   state.revelarTexto = localStorage.getItem('simulamed_revelar') === 'si';
   state.vozLenta = localStorage.getItem('simulamed_voz_lenta') === 'si';
+  state.permitirVoz = localStorage.getItem('simulamed_permitir_voz') === 'si';
   const modeloGuardado = localStorage.getItem('simulamed_modelo');
   if(modeloGuardado) state.model = modeloGuardado;
 
   document.getElementById('chkRevelarTexto').checked = state.revelarTexto;
   document.getElementById('chkVozLenta').checked = state.vozLenta;
+  document.getElementById('chkPermitirVoz').checked = state.permitirVoz;
   document.getElementById('modelSelect').value = state.model;
 }
 
@@ -563,7 +601,8 @@ async function entrarAConsulta(){
   document.getElementById('btnFinalizar').disabled = false;
   guardarSesion();
 
-  document.getElementById('txtInput').focus();
+  mostrarRecordadorAudio(state.permitirVoz);
+  if(!state.permitirVoz) document.getElementById('txtInput').focus();
 }
 
 /* ---------- Turno de pregunta ---------- */
@@ -831,9 +870,141 @@ document.getElementById('chkVozLenta').onchange = evento => {
   localStorage.setItem('simulamed_voz_lenta', state.vozLenta ? 'si' : 'no');
 };
 
+document.getElementById('chkPermitirVoz').onchange = evento => {
+  state.permitirVoz = evento.target.checked;
+  localStorage.setItem('simulamed_permitir_voz', state.permitirVoz ? 'si' : 'no');
+};
+
 document.getElementById('modelSelect').onchange = evento => {
   state.model = evento.target.value;
   localStorage.setItem('simulamed_modelo', state.model);
+};
+
+/* ---------- Grabación de audio con Whisper ---------- */
+let mediaRecorder = null;
+let audioChunks = [];
+let pulgadaTranscripcion = null;
+
+function mostrarRecordadorAudio(mostrar){
+  const recorder = document.getElementById('audioRecorder');
+  if(mostrar){
+    recorder.classList.add('active');
+    document.getElementById('txtInput').style.display = 'none';
+    document.getElementById('btnEnviar').style.display = 'none';
+  } else {
+    recorder.classList.remove('active');
+    document.getElementById('txtInput').style.display = '';
+    document.getElementById('btnEnviar').style.display = '';
+  }
+  limpiarTranscripcion();
+}
+
+function limpiarTranscripcion(){
+  pulgadaTranscripcion = null;
+  document.getElementById('audioPreview').classList.remove('show');
+  document.getElementById('previewText').textContent = '';
+  document.getElementById('btnSendAudio').disabled = false;
+}
+
+function iniciarGrabacion(){
+  if(mediaRecorder && mediaRecorder.state === 'recording'){
+    detenerGrabacion();
+    return;
+  }
+
+  navigator.mediaDevices.getUserMedia({ audio:true })
+    .then(stream => {
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = evento => {
+        audioChunks.push(evento.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(audioChunks, { type:'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await transcribirAudio(blob);
+      };
+
+      mediaRecorder.start();
+      document.getElementById('btnMicrophone').classList.add('recording');
+      document.getElementById('btnMicrophone').textContent = '⏹ Detener grabación';
+      document.getElementById('btnDiscardAudio').style.display = '';
+      document.getElementById('consultaStatus').textContent = 'Grabando…';
+    })
+    .catch(error => {
+      document.getElementById('consultaStatus').textContent =
+        'No se puede acceder al micrófono. Verifica permisos del navegador.';
+    });
+}
+
+function detenerGrabacion(){
+  if(mediaRecorder && mediaRecorder.state === 'recording'){
+    mediaRecorder.stop();
+    document.getElementById('btnMicrophone').classList.remove('recording');
+    document.getElementById('btnMicrophone').textContent = '🎤 Grabar pregunta';
+    document.getElementById('btnMicrophone').disabled = true;
+    document.getElementById('consultaStatus').textContent = 'Transcribiendo con Whisper…';
+  }
+}
+
+async function transcribirAudio(blob){
+  const fd = new FormData();
+  fd.append('file', blob, 'pregunta.webm');
+
+  try{
+    const respuesta = await fetch('/api/groq?mode=transcribe', {
+      method:'POST',
+      body:fd
+    });
+
+    if(!respuesta.ok){
+      const detalle = await respuesta.text();
+      throw new Error('Error al transcribir: ' + respuesta.status);
+    }
+
+    const datos = await respuesta.json();
+    pulgadaTranscripcion = datos.text || '';
+
+    if(!pulgadaTranscripcion){
+      throw new Error('Whisper no pudo transcribir el audio. Intenta de nuevo.');
+    }
+
+    document.getElementById('previewText').textContent = pulgadaTranscripcion;
+    document.getElementById('audioPreview').classList.add('show');
+    document.getElementById('consultaStatus').textContent = 'Transcripción lista. Revisa antes de enviar.';
+    document.getElementById('btnMicrophone').disabled = false;
+  }catch(error){
+    document.getElementById('consultaStatus').textContent =
+      error.message || 'No se pudo transcribir. Intenta de nuevo.';
+    document.getElementById('btnMicrophone').disabled = false;
+  }
+}
+
+document.getElementById('btnMicrophone').onclick = iniciarGrabacion;
+
+document.getElementById('btnDiscardAudio').onclick = ()=>{
+  limpiarTranscripcion();
+  audioChunks = [];
+  document.getElementById('btnDiscardAudio').style.display = 'none';
+  document.getElementById('btnMicrophone').disabled = false;
+  document.getElementById('consultaStatus').textContent = '';
+};
+
+document.getElementById('btnRerecord').onclick = ()=>{
+  limpiarTranscripcion();
+  audioChunks = [];
+  document.getElementById('btnMicrophone').disabled = false;
+};
+
+document.getElementById('btnSendAudio').onclick = ()=>{
+  if(pulgadaTranscripcion){
+    document.getElementById('btnSendAudio').disabled = true;
+    enviarPregunta(pulgadaTranscripcion);
+    limpiarTranscripcion();
+    mostrarRecordadorAudio(false);
+  }
 };
 
 /* ---------- Reanudar una consulta interrumpida ---------- */
