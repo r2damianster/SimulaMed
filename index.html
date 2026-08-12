@@ -170,27 +170,35 @@
 <script>
 const state = { caso:null, historial:[], apiKey:'', model:'llama-3.3-70b-versatile' };
 
-function loadKey(){
-  const saved = localStorage.getItem('simulamed_groq_key');
+async function loadKey(){
   const savedModel = localStorage.getItem('simulamed_groq_model');
-  if(saved){
-    state.apiKey = saved;
-    document.getElementById('apiKey').value = saved;
-    document.getElementById('keybar').classList.add('ok');
-  }
   if(savedModel){
     state.model = savedModel;
     document.getElementById('modelSelect').value = savedModel;
   }
+  try {
+    const res = await fetch("/api/groq", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: state.model,
+        max_tokens: 10,
+        messages: [{ role: "user", content: "ok" }]
+      })
+    });
+    if(res.ok){
+      state.apiKey = 'configured';
+      document.getElementById('keybar').classList.add('ok');
+      document.getElementById('apiKey').value = '✓ Configurada en servidor';
+      document.getElementById('apiKey').disabled = true;
+      document.getElementById('btnSaveKey').disabled = true;
+    }
+  } catch(e) {}
 }
 document.getElementById('btnSaveKey').onclick = ()=>{
-  const val = document.getElementById('apiKey').value.trim();
   const model = document.getElementById('modelSelect').value;
-  state.apiKey = val;
   state.model = model;
-  localStorage.setItem('simulamed_groq_key', val);
   localStorage.setItem('simulamed_groq_model', model);
-  document.getElementById('keybar').classList.toggle('ok', !!val);
 };
 loadKey();
 
@@ -207,14 +215,10 @@ function tabs(){
 tabs();
 
 async function callGroq(messages, system, maxTokens){
-  if(!state.apiKey){
-    throw new Error('Falta la Groq API key. Ingrésala arriba y pulsa Guardar.');
-  }
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions",{
+  const res = await fetch("/api/groq",{
     method:"POST",
     headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer " + state.apiKey
+      "Content-Type":"application/json"
     },
     body:JSON.stringify({
       model: state.model,
@@ -225,7 +229,7 @@ async function callGroq(messages, system, maxTokens){
   });
   if(!res.ok){
     const errText = await res.text();
-    throw new Error('Groq API error: ' + res.status + ' ' + errText);
+    throw new Error('API error: ' + res.status + ' ' + errText);
   }
   const data = await res.json();
   return data.choices && data.choices[0] ? data.choices[0].message.content : '';
