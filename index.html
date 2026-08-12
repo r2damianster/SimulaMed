@@ -678,9 +678,16 @@ function renderReporte(evaluacion, duracionTexto, mensajeError){
   const caso = state.caso;
   const guion = caso.guion_clinico;
 
+  /* El modelo a veces devuelve un puntaje_total que no cuadra con la suma de
+     sus propios criterios. El total se calcula aquí para que siempre coincida
+     con lo que el estudiante ve desglosado. */
+  const puntajeTotal = evaluacion
+    ? evaluacion.criterios.reduce((suma, criterio) => suma + criterio.puntaje, 0)
+    : 0;
+
   const bloqueRubrica = evaluacion ? `
     <div class="stamp-total">
-      <div class="num">${evaluacion.puntaje_total}/10</div>
+      <div class="num">${puntajeTotal}/10</div>
       <div class="lbl">Evaluación automática<br>según Formulario MSP 002</div>
     </div>
     <div class="card">
