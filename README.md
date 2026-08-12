@@ -23,9 +23,20 @@ Prototipo funcional de simulación clínica digital para la práctica de anamnes
 
 Es un sitio estático de un solo archivo — no requiere build ni backend para el piloto:
 
-- **GitHub Pages**: activa Pages sobre la rama principal en la configuración del repositorio. Gratis.
-- **Netlify / Vercel**: arrastra la carpeta al panel de despliegue. Gratis en el nivel free.
-- **Local**: abrir `index.html` directamente también funciona (algunos navegadores restringen el micrófono en `file://`; si pasa, sirve la carpeta con `python3 -m http.server`).
+### Opción 1: GitHub Pages (recomendado para piloto)
+- Activa Pages sobre la rama principal en la configuración del repositorio. Gratis.
+- La clave se ingresa en el navegador (ver **Nota de seguridad**).
+
+### Opción 2: Vercel
+- Arrastra la carpeta al [panel de Vercel](https://vercel.com). Gratis en el nivel free.
+- Para usar un proxy y ocultar la clave: agrega variables de environment en **Settings > Environment Variables**:
+  - `GROQ_API_KEY`: tu clave de Groq (nunca en el código fuente)
+  - `GROQ_MODEL`: modelo de Groq (opcional; defecto: `llama-3.3-70b-versatile`)
+- Luego despliega `proxy-example/cloudflare-worker.js` en Cloudflare Workers y apunta a ese proxy.
+
+### Opción 3: Local
+- Abrir `index.html` directamente también funciona.
+- Nota: algunos navegadores restringen el micrófono en `file://`; si pasa, sirve la carpeta con `python -m http.server`.
 
 ## Nota de seguridad importante
 
