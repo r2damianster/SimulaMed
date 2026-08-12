@@ -66,11 +66,31 @@ La clave de Groq vive únicamente como variable de entorno del servidor. El nave
 
 La sesión en curso (caso, transcripción, formulario) se guarda en el `localStorage` del navegador para poder retomarla si la página se recarga por accidente. Se borra al terminar la evaluación. No se envía nada a ningún servidor salvo las llamadas a Groq necesarias para que el paciente responda y para calificar.
 
-## Roadmap
+## Estado actual
 
-- [ ] Banco de casos clínicos curado por los docentes SME en vez de generación libre, para alinear estrictamente con el sílabo.
+**Listo para piloto de aula.** El ciclo completo funciona en producción.
+
+Verificado contra el despliegue real: generación de casos, saludo inicial hablado del paciente, turnos de conversación con respuestas de 1-3 frases, y la rúbrica evaluando tanto el interrogatorio como la fidelidad del formulario (detecta lo que el estudiante anotó sin que el paciente lo dijera).
+
+**Antes de la primera sesión con estudiantes**, correr una consulta completa en el equipo del laboratorio. Lo que hay que comprobar ahí y no se puede comprobar de otro modo:
+
+- Que el navegador tenga una **voz en español** instalada. Si no la encuentra, `SpeechSynthesis` lee con acento en inglés y la práctica pierde sentido. En Windows se agregan desde Configuración → Hora e idioma → Voz.
+- Que el volumen o los auriculares se escuchen bien desde el puesto del estudiante.
+- Que el panel **Ajustes del docente** (pie de página) esté a mano por si hace falta activar el texto escrito.
+
+### Capacidad con el nivel gratuito
+
+La clave vive en el servidor, así que **toda la clase comparte el mismo límite de Groq** — a diferencia del prototipo anterior, donde cada estudiante ponía su propia clave. Cada consulta consume una llamada para generar el caso, una por cada pregunta y una para la evaluación final.
+
+Para práctica en pares o grupos pequeños alcanza sin problema. Antes de una sesión con el curso completo y simultáneo, revisar los límites vigentes de la cuenta en [console.groq.com](https://console.groq.com) y, si hace falta, escalonar los grupos.
+
+## Backlog
+
+Archivado hasta que estén disponibles los documentos institucionales (sílabo, rúbrica oficial de la facultad, casos seleccionados por los docentes SME):
+
+- [ ] Banco de casos clínicos curado por los docentes SME en vez de generación libre. **Hoy el modelo elige la patología por su cuenta y puede salirse del sílabo** — es la limitación más relevante para uso formal.
 - [ ] Rúbrica exacta de la facultad en lugar de los cinco criterios genéricos actuales.
-- [ ] Registro automático de cada evaluación en Google Sheets vía Apps Script.
+- [ ] Registro automático de cada evaluación en Google Sheets vía Apps Script. Mientras tanto, el reporte se guarda con el botón *Imprimir / Guardar PDF*, uno por estudiante.
 - [ ] Transcripción con Whisper de Groq (`whisper-large-v3`, ~$0.04/hora de audio) para reactivar la voz de entrada con buena precisión en acento ecuatoriano.
 
 ## Origen

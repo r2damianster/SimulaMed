@@ -48,9 +48,22 @@ Si se edita la interfaz, no reintroducir el texto del paciente durante la consul
 
 `.env` y `.env.example` están en `.gitignore`: en este repositorio `.env.example` se usa como archivo local de trabajo con la clave real. La plantilla pública es `env.plantilla.txt`. GitHub tiene push protection activo y bloquea cualquier commit que contenga una clave de Groq.
 
-## Pendientes conocidos (ver también README → Roadmap)
+## Estado
 
-- Banco de casos curado por docentes en vez de generación libre (hoy el modelo elige la patología y puede salirse del sílabo).
+Listo para piloto de aula. El ciclo completo está verificado contra el despliegue de producción (generación de caso, saludo hablado, turnos de conversación, rúbrica sobre transcripción + formulario).
+
+La interfaz en navegador no ha sido probada con interacción real: falta correr una consulta completa en el equipo del laboratorio, sobre todo para confirmar que haya una voz en español instalada — sin ella `SpeechSynthesis` lee con acento en inglés.
+
+Dos cosas a tener presentes al modificar:
+
+- **El puntaje total se calcula en el cliente** sumando los criterios, no se toma el `puntaje_total` que devuelve el modelo. En pruebas devolvió 6/10 con criterios que sumaban 5. No revertir a confiar en ese campo.
+- **La clave del servidor es compartida por toda la clase.** Cualquier cambio que aumente el número de llamadas por consulta (más turnos automáticos, reintentos, precarga de casos) consume el límite común del nivel gratuito de Groq.
+
+## Backlog (ver también README → Backlog)
+
+Archivado hasta contar con los documentos institucionales:
+
+- Banco de casos curado por docentes en vez de generación libre (hoy el modelo elige la patología y puede salirse del sílabo — la limitación más relevante para uso formal).
 - Rúbrica exacta de la facultad en vez de los 5 criterios genéricos actuales.
-- Registro de resultados en Google Sheets vía Apps Script.
+- Registro de resultados en Google Sheets vía Apps Script (hoy: botón Imprimir / Guardar PDF).
 - Whisper de Groq (`whisper-large-v3`) para reactivar la voz de entrada con precisión en acento ecuatoriano.
